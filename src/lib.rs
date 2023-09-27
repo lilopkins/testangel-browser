@@ -1,14 +1,11 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+use std::sync::Mutex;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+use lazy_static::lazy_static;
+use testangel_engine::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[derive(Default)]
+struct State;
+
+lazy_static! {
+    static ref ENGINE: Mutex<Engine<'static, Mutex<State>>> = Mutex::new(Engine::new("Browser Automation", env!("CARGO_PKG_VERSION")));
 }
