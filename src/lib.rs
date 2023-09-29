@@ -1,7 +1,4 @@
-use std::{
-    io::{BufReader, BufWriter, Cursor},
-    sync::Mutex,
-};
+use std::sync::Mutex;
 
 use lazy_static::lazy_static;
 use testangel_engine::*;
@@ -408,12 +405,6 @@ lazy_static! {
                 let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
                 let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
                 let png_data = rt.block_on(elem.screenshot_as_png())?;
-
-                // remove alpha channel
-                let img = image::io::Reader::new(BufReader::new(Cursor::new(png_data))).with_guessed_format()?.decode()?.into_rgb8();
-                let mut png_data = vec![];
-                img.write_to(&mut BufWriter::new(Cursor::new(&mut png_data)), image::ImageOutputFormat::Png)?;
-
                 use base64::{Engine as _, engine::general_purpose};
                 let png_base64 = general_purpose::STANDARD.encode(png_data);
                 evidence.push(Evidence { label: params["label"].value_string(), content: EvidenceContent::ImageAsPngBase64(png_base64) });
