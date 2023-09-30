@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::{sync::Mutex, time::Duration};
 
 use lazy_static::lazy_static;
 use testangel_engine::*;
@@ -31,8 +31,42 @@ lazy_static! {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 state.rt = Some(runtime::Builder::new_current_thread().enable_all().build()?);
 
+                use std::{env, process};
+                let use_chrome = env::var("TA_BROWSER_USE_CHROME").ok();
+                let use_firefox = env::var("TA_BROWSER_USE_FIREFOX").ok();
+
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
-                let driver = rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox()))?;
+                let driver = if let Some(chromedriver_path) = use_chrome {
+                    // Try to connect to running cromedriver
+                    if let Ok(driver) = rt.block_on(WebDriver::new("http://localhost:9515", DesiredCapabilities::chrome())) {
+                        driver
+                    } else {
+                        // Use chromedriver at path
+                        process::Command::new(chromedriver_path)
+                            .spawn()
+                            .map_err(|e| format!("Failed to start chromedriver: {e}"))?;
+                        std::thread::sleep(Duration::from_millis(500));
+                        rt.block_on(WebDriver::new("http://localhost:9515", DesiredCapabilities::chrome()))?
+                    }
+                } else if let Some(geckodriver_path) = use_firefox {
+                    // Try to connect to running geckodriver
+                    if let Ok(driver) = rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())) {
+                        driver
+                    } else {
+                        // Use geckodriver at path
+                        process::Command::new(geckodriver_path)
+                            .spawn()
+                            .map_err(|e| format!("Failed to start geckodriver: {e}"))?;
+                        // Give it time to start
+                        std::thread::sleep(Duration::from_millis(500));
+                        rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox()))?
+                    }
+                } else {
+                    // TODO Download a browser and driver
+                    Err("This functionality is currently not implemented in the engine. Please set either `TA_BROWSER_USE_CHROME` or `TA_BROWSER_USE_FIREFOX` and try again.")?;
+                    unreachable!()
+                };
+
                 rt.block_on(driver.goto(DEFAULT_URI))?;
                 state.driver = Some(driver);
 
