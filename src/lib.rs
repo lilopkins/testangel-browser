@@ -34,11 +34,13 @@ lazy_static! {
                 use std::{env, process};
                 let use_chrome = env::var("TA_BROWSER_USE_CHROME").ok();
                 let use_firefox = env::var("TA_BROWSER_USE_FIREFOX").ok();
+                let webdriver_port = env::var("TA_BROWSER_WEBDRIVER_PORT").ok();
 
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = if let Some(chromedriver_path) = use_chrome {
                     // Try to connect to running cromedriver
-                    if let Ok(driver) = rt.block_on(WebDriver::new("http://localhost:9515", DesiredCapabilities::chrome())) {
+                    let port = webdriver_port.unwrap_or("9515".to_string());
+                    if let Ok(driver) = rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::chrome())) {
                         driver
                     } else {
                         // Use chromedriver at path
@@ -46,11 +48,12 @@ lazy_static! {
                             .spawn()
                             .map_err(|e| format!("Failed to start chromedriver: {e}"))?;
                         std::thread::sleep(Duration::from_millis(500));
-                        rt.block_on(WebDriver::new("http://localhost:9515", DesiredCapabilities::chrome()))?
+                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::chrome()))?
                     }
                 } else if let Some(geckodriver_path) = use_firefox {
                     // Try to connect to running geckodriver
-                    if let Ok(driver) = rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())) {
+                    let port = webdriver_port.unwrap_or("4444".to_string());
+                    if let Ok(driver) = rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::firefox())) {
                         driver
                     } else {
                         // Use geckodriver at path
@@ -59,7 +62,7 @@ lazy_static! {
                             .map_err(|e| format!("Failed to start geckodriver: {e}"))?;
                         // Give it time to start
                         std::thread::sleep(Duration::from_millis(500));
-                        rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox()))?
+                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::firefox()))?
                     }
                 } else {
                     // TODO Download a browser and driver
