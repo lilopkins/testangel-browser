@@ -34,11 +34,13 @@ lazy_static! {
                 use std::{env, process};
                 let use_chrome = env::var("TA_BROWSER_USE_CHROME").ok();
                 let use_firefox = env::var("TA_BROWSER_USE_FIREFOX").ok();
+                let webdriver_port = env::var("TA_BROWSER_WEBDRIVER_PORT").ok();
 
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = if let Some(chromedriver_path) = use_chrome {
                     // Try to connect to running cromedriver
-                    if let Ok(driver) = rt.block_on(WebDriver::new("http://localhost:9515", DesiredCapabilities::chrome())) {
+                    let port = webdriver_port.unwrap_or("9515".to_string());
+                    if let Ok(driver) = rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::chrome())) {
                         driver
                     } else {
                         // Use chromedriver at path
@@ -46,11 +48,12 @@ lazy_static! {
                             .spawn()
                             .map_err(|e| format!("Failed to start chromedriver: {e}"))?;
                         std::thread::sleep(Duration::from_millis(500));
-                        rt.block_on(WebDriver::new("http://localhost:9515", DesiredCapabilities::chrome()))?
+                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::chrome()))?
                     }
                 } else if let Some(geckodriver_path) = use_firefox {
                     // Try to connect to running geckodriver
-                    if let Ok(driver) = rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox())) {
+                    let port = webdriver_port.unwrap_or("4444".to_string());
+                    if let Ok(driver) = rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::firefox())) {
                         driver
                     } else {
                         // Use geckodriver at path
@@ -59,7 +62,7 @@ lazy_static! {
                             .map_err(|e| format!("Failed to start geckodriver: {e}"))?;
                         // Give it time to start
                         std::thread::sleep(Duration::from_millis(500));
-                        rt.block_on(WebDriver::new("http://localhost:4444", DesiredCapabilities::firefox()))?
+                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::firefox()))?
                     }
                 } else {
                     // TODO Download a browser and driver
@@ -85,7 +88,83 @@ lazy_static! {
             }
         )
 
-        /* NAVIGATION */
+        /* WEBDRIVER SESSION */
+        .with_instruction(
+            Instruction::new("browser-alert-dismiss", "Alert: Dismiss", "Dismiss an alert box."),
+            |state: &mut Mutex<State>, _params, _output, _evidence| {
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                rt.block_on(driver.dismiss_alert())?;
+                Ok(())
+            }
+        )
+        .with_instruction(
+            Instruction::new("browser-alert-accept", "Alert: Accept", "Accept an alert box."),
+            |state: &mut Mutex<State>, _params, _output, _evidence| {
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                rt.block_on(driver.accept_alert())?;
+                Ok(())
+            }
+        )
+        .with_instruction(
+            Instruction::new("browser-alert-get-text", "Alert: Get Text", "Get the text contained in an alert box.")
+                .with_output("text", "Alert Text", ParameterKind::String),
+            |state: &mut Mutex<State>, _params, output, _evidence| {
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                let text = rt.block_on(driver.get_alert_text())?;
+                output.insert("text".to_string(), ParameterValue::String(text));
+                Ok(())
+            }
+        )
+        .with_instruction(
+            Instruction::new("browser-alert-send-text", "Alert: Send Keys (Type)", "Send keys to an alert box.")
+                .with_parameter("keys", "Keys", ParameterKind::String),
+            |state: &mut Mutex<State>, params, _output, _evidence| {
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                let keys = params["keys"].value_string();
+                rt.block_on(driver.send_alert_text(keys))?;
+                Ok(())
+            }
+        )
+        .with_instruction(
+            Instruction::new("browser-current-url", "Get Current URL", "Get the current URL.")
+                .with_output("url", "URL", ParameterKind::String),
+            |state: &mut Mutex<State>, _params, output, _evidence| {
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                let url = rt.block_on(driver.current_url())?;
+                output.insert("url".to_string(), ParameterValue::String(url.to_string()));
+                Ok(())
+            }
+        )
+        .with_instruction(
+            Instruction::new("browser-execute-javascript", "Execute JavaScript", "Execute arbitrary JavaScript.")
+                .with_parameter("script", "JavaScript", ParameterKind::String)
+                .with_output("return", "Return Value as JSON String", ParameterKind::String),
+            |state: &mut Mutex<State>, params, output, _evidence| {
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                let script = params["script"].value_string();
+                let ret = rt.block_on(driver.execute(&script, vec![]))?;
+                output.insert("return".to_string(), ParameterValue::String(ret.json().to_string()));
+                Ok(())
+            }
+        )
         .with_instruction(
             Instruction::new("browser-goto", "Go to URL", "Direct the browser to a URL.")
                 .with_parameter("url", "URL", ParameterKind::String),
