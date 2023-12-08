@@ -1,4 +1,4 @@
-use std::{sync::Mutex, time::Duration, process::Child};
+use std::{process::Child, sync::Mutex, time::Duration};
 
 use lazy_static::lazy_static;
 use testangel_engine::*;
@@ -626,10 +626,10 @@ fn string_to_args<S: AsRef<str>>(s: S) -> Vec<String> {
                     quoted = !quoted;
                 }
                 escaped = false;
-            },
+            }
             '\\' => {
                 escaped = true;
-            },
+            }
             ' ' => {
                 if quoted {
                     buffer.push(ch);
@@ -660,9 +660,21 @@ mod tests {
     #[test]
     fn test_string_to_args() {
         assert_eq!(string_to_args(""), Vec::<String>::new());
-        assert_eq!(string_to_args("arga argb argc"), vec!["arga", "argb", "argc"]);
-        assert_eq!(string_to_args(r#"arga "argb" argc"#), vec!["arga", "argb", "argc"]);
-        assert_eq!(string_to_args(r#"arga "argb argc""#), vec!["arga", "argb argc"]);
-        assert_eq!(string_to_args(r#"arga "argb \"argc""#), vec!["arga", "argb \"argc"]);
+        assert_eq!(
+            string_to_args("arga argb argc"),
+            vec!["arga", "argb", "argc"]
+        );
+        assert_eq!(
+            string_to_args(r#"arga "argb" argc"#),
+            vec!["arga", "argb", "argc"]
+        );
+        assert_eq!(
+            string_to_args(r#"arga "argb argc""#),
+            vec!["arga", "argb argc"]
+        );
+        assert_eq!(
+            string_to_args(r#"arga "argb \"argc""#),
+            vec!["arga", "argb \"argc"]
+        );
     }
 }
