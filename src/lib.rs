@@ -646,7 +646,7 @@ fn string_to_args<S: AsRef<str>>(s: S) -> Vec<String> {
         }
     }
 
-    if !quoted {
+    if !quoted && !buffer.is_empty() {
         args.push(buffer);
     }
 
@@ -659,6 +659,7 @@ mod tests {
 
     #[test]
     fn test_string_to_args() {
+        assert_eq!(string_to_args(""), Vec::<String>::new());
         assert_eq!(string_to_args("arga argb argc"), vec!["arga", "argb", "argc"]);
         assert_eq!(string_to_args(r#"arga "argb" argc"#), vec!["arga", "argb", "argc"]);
         assert_eq!(string_to_args(r#"arga "argb argc""#), vec!["arga", "argb argc"]);
