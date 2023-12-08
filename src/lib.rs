@@ -53,7 +53,9 @@ lazy_static! {
                         driver
                     } else {
                         // Use chromedriver at path
+                        let args = env::var("TA_BROWSER_CHROME_ARGS").unwrap_or(String::new());
                         state.child_driver = Some(process::Command::new(chromedriver_path)
+                            .args(string_to_args(args))
                             .spawn()
                             .map_err(|e| format!("Failed to start chromedriver: {e}"))?);
                         std::thread::sleep(Duration::from_millis(500));
@@ -66,7 +68,9 @@ lazy_static! {
                         driver
                     } else {
                         // Use geckodriver at path
+                        let args = env::var("TA_BROWSER_FIREFOX_ARGS").unwrap_or(String::new());
                         state.child_driver = Some(process::Command::new(geckodriver_path)
+                            .args(string_to_args(args))
                             .spawn()
                             .map_err(|e| format!("Failed to start geckodriver: {e}"))?);
                         // Give it time to start
@@ -605,3 +609,59 @@ lazy_static! {
 }
 
 expose_engine!(ENGINE);
+
+fn string_to_args<S: AsRef<str>>(s: S) -> Vec<String> {
+    let mut args = vec![];
+
+    let mut quoted = false;
+    let mut escaped = false;
+    let mut buffer = String::new();
+
+    for ch in s.as_ref().chars() {
+        match ch {
+            '"' => {
+                if escaped {
+                    buffer.push(ch);
+                } else {
+                    quoted = !quoted;
+                }
+                escaped = false;
+            },
+            '\\' => {
+                escaped = true;
+            },
+            ' ' => {
+                if quoted {
+                    buffer.push(ch);
+                } else {
+                    args.push(buffer);
+                    buffer = String::new();
+                }
+                escaped = false;
+            }
+            _ => {
+                buffer.push(ch);
+                escaped = false;
+            }
+        }
+    }
+
+    if !quoted {
+        args.push(buffer);
+    }
+
+    args
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::string_to_args;
+
+    #[test]
+    fn test_string_to_args() {
+        assert_eq!(string_to_args("arga argb argc"), vec!["arga", "argb", "argc"]);
+        assert_eq!(string_to_args(r#"arga "argb" argc"#), vec!["arga", "argb", "argc"]);
+        assert_eq!(string_to_args(r#"arga "argb argc""#), vec!["arga", "argb argc"]);
+        assert_eq!(string_to_args(r#"arga "argb \"argc""#), vec!["arga", "argb \"argc"]);
+    }
+}
