@@ -1,4 +1,4 @@
-use std::{sync::Mutex, time::Duration, process::Child};
+use std::{process::Child, sync::Mutex, time::Duration};
 
 use lazy_static::lazy_static;
 use testangel_engine::*;
@@ -53,13 +53,18 @@ lazy_static! {
                         driver
                     } else {
                         // Use chromedriver at path
-                        let args = env::var("TA_BROWSER_CHROME_ARGS").unwrap_or(String::new());
+                        let args = env::var("TA_BROWSER_CHROMEDRIVER_ARGS").unwrap_or(String::new());
+                        let browser_args = string_to_args(env::var("TA_BROWSER_CHROME_ARGS").unwrap_or(String::new()));
                         state.child_driver = Some(process::Command::new(chromedriver_path)
                             .args(string_to_args(args))
                             .spawn()
                             .map_err(|e| format!("Failed to start chromedriver: {e}"))?);
                         std::thread::sleep(Duration::from_millis(500));
-                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::chrome()))?
+                        let mut caps = DesiredCapabilities::chrome();
+                        for arg in browser_args {
+                            let _ = caps.add_chrome_arg(&arg);
+                        }
+                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), caps))?
                     }
                 } else if let Some(geckodriver_path) = use_firefox {
                     // Try to connect to running geckodriver
@@ -68,14 +73,19 @@ lazy_static! {
                         driver
                     } else {
                         // Use geckodriver at path
-                        let args = env::var("TA_BROWSER_FIREFOX_ARGS").unwrap_or(String::new());
+                        let args = env::var("TA_BROWSER_GECKODRIVER_ARGS").unwrap_or(String::new());
+                        let browser_args = string_to_args(env::var("TA_BROWSER_FIREFOX_ARGS").unwrap_or(String::new()));
                         state.child_driver = Some(process::Command::new(geckodriver_path)
                             .args(string_to_args(args))
                             .spawn()
                             .map_err(|e| format!("Failed to start geckodriver: {e}"))?);
                         // Give it time to start
                         std::thread::sleep(Duration::from_millis(500));
-                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), DesiredCapabilities::firefox()))?
+                        let mut caps = DesiredCapabilities::firefox();
+                        for arg in browser_args {
+                            let _ = caps.add_firefox_arg(&arg);
+                        }
+                        rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), caps))?
                     }
                 } else {
                     // TODO Download a browser and driver
@@ -626,10 +636,10 @@ fn string_to_args<S: AsRef<str>>(s: S) -> Vec<String> {
                     quoted = !quoted;
                 }
                 escaped = false;
-            },
+            }
             '\\' => {
                 escaped = true;
-            },
+            }
             ' ' => {
                 if quoted {
                     buffer.push(ch);
@@ -660,9 +670,21 @@ mod tests {
     #[test]
     fn test_string_to_args() {
         assert_eq!(string_to_args(""), Vec::<String>::new());
-        assert_eq!(string_to_args("arga argb argc"), vec!["arga", "argb", "argc"]);
-        assert_eq!(string_to_args(r#"arga "argb" argc"#), vec!["arga", "argb", "argc"]);
-        assert_eq!(string_to_args(r#"arga "argb argc""#), vec!["arga", "argb argc"]);
-        assert_eq!(string_to_args(r#"arga "argb \"argc""#), vec!["arga", "argb \"argc"]);
+        assert_eq!(
+            string_to_args("arga argb argc"),
+            vec!["arga", "argb", "argc"]
+        );
+        assert_eq!(
+            string_to_args(r#"arga "argb" argc"#),
+            vec!["arga", "argb", "argc"]
+        );
+        assert_eq!(
+            string_to_args(r#"arga "argb argc""#),
+            vec!["arga", "argb argc"]
+        );
+        assert_eq!(
+            string_to_args(r#"arga "argb \"argc""#),
+            vec!["arga", "argb \"argc"]
+        );
     }
 }
