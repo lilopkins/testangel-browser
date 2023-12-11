@@ -8,11 +8,24 @@ use tokio::runtime::{self, Runtime};
 
 const DEFAULT_URI: &str = "data:text/html;base64,PGh0bWw+PGhlYWQ+PHRpdGxlPkJyb3dzZXIgQXV0b21hdGlvbjwvdGl0bGU+PC9oZWFkPjxib2R5IHN0eWxlPSJvdmVyZmxvdzpoaWRkZW47Ij48aDEgc3R5bGU9ImRpc3BsYXk6ZmxleDtqdXN0aWZ5LWNvbnRlbnQ6Y2VudGVyO2FsaWduLWl0ZW1zOmNlbnRlcjtoZWlnaHQ6MTAwJTsiPlRlc3RBbmdlbCBCcm93c2VyIEF1dG9tYXRpb24gc3RhcnRpbmcuLi48L2gxPjwvYm9keT48L2h0bWw+";
 
-#[derive(Default)]
 struct State {
     rt: Option<Runtime>,
     driver: Option<WebDriver>,
     child_driver: Option<Child>,
+    timeout: Duration,
+    interval: Duration,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            rt: None,
+            driver: None,
+            child_driver: None,
+            timeout: Duration::from_secs(10),
+            interval: Duration::from_millis(100),
+        }
+    }
 }
 
 impl Drop for State {
@@ -211,7 +224,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::ClassName(&params["class"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::ClassName(&params["class"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
@@ -225,7 +240,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::Css(&params["css"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::Css(&params["css"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
@@ -239,7 +256,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::Id(&params["id"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::Id(&params["id"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
@@ -253,7 +272,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::LinkText(&params["link-text"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::LinkText(&params["link-text"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
@@ -267,7 +288,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::Name(&params["name"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::Name(&params["name"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
@@ -281,7 +304,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::Tag(&params["tag"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::Tag(&params["tag"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
@@ -295,7 +320,9 @@ lazy_static! {
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
 
-                let elem = rt.block_on(driver.find(By::XPath(&params["xpath"].value_string())))?;
+                let elem = rt.block_on(driver.query(By::XPath(&params["xpath"].value_string()))
+                    .wait(state.timeout, state.interval)
+                    .first())?;
                 output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
                 Ok(())
             }
