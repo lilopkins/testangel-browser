@@ -66,8 +66,8 @@ lazy_static! {
                         driver
                     } else {
                         // Use chromedriver at path
-                        let args = env::var("TA_BROWSER_CHROMEDRIVER_ARGS").unwrap_or(String::new());
-                        let browser_args = string_to_args(env::var("TA_BROWSER_CHROME_ARGS").unwrap_or(String::new()));
+                        let args = env::var("TA_BROWSER_CHROMEDRIVER_ARGS").unwrap_or_default();
+                        let browser_args = string_to_args(env::var("TA_BROWSER_CHROME_ARGS").unwrap_or_default());
                         state.child_driver = Some(process::Command::new(chromedriver_path)
                             .args(string_to_args(args))
                             .spawn()
@@ -86,8 +86,8 @@ lazy_static! {
                         driver
                     } else {
                         // Use geckodriver at path
-                        let args = env::var("TA_BROWSER_GECKODRIVER_ARGS").unwrap_or(String::new());
-                        let browser_args = string_to_args(env::var("TA_BROWSER_FIREFOX_ARGS").unwrap_or(String::new()));
+                        let args = env::var("TA_BROWSER_GECKODRIVER_ARGS").unwrap_or_default();
+                        let browser_args = string_to_args(env::var("TA_BROWSER_FIREFOX_ARGS").unwrap_or_default());
                         state.child_driver = Some(process::Command::new(geckodriver_path)
                             .args(string_to_args(args))
                             .spawn()
