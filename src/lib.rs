@@ -214,6 +214,48 @@ lazy_static! {
             }
         )
 
+        /* CHROME DEVTOOLS PROTOCOL */
+        .with_instruction(
+            Instruction::new("browser-cdp-execute", "Chrome DevTools: Execute", "Execute arbitrary JavaScript.")
+                .with_parameter("cmd", "Command", ParameterKind::String)
+                .with_output("return", "Return Value as JSON String", ParameterKind::String),
+            |state: &mut Mutex<State>, params, output, _evidence| {
+                use thirtyfour::extensions::cdp::ChromeDevTools;
+
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                let cmd = params["cmd"].value_string();
+                let dev_tools = ChromeDevTools::new(driver.handle.clone());
+                let ret = rt.block_on(dev_tools.execute_cdp(&cmd))?;
+                output.insert("return".to_string(), ParameterValue::String(serde_json::to_string(&ret).map_err(|_| "Return value couldn't be converted to JSON string")?));
+
+                Ok(())
+            }
+        )
+        .with_instruction(
+            Instruction::new("browser-cdp-execute-with-params", "Chrome DevTools: Execute with Parameters", "Direct the browser to a URL.")
+                .with_parameter("cmd", "Command", ParameterKind::String)
+                .with_parameter("params", "Parameter as JSON String", ParameterKind::String)
+                .with_output("return", "Return Value as JSON String", ParameterKind::String),
+            |state: &mut Mutex<State>, params, output, _evidence| {
+                use thirtyfour::extensions::cdp::ChromeDevTools;
+
+                let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
+                let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
+                let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+
+                let cmd = params["cmd"].value_string();
+                let cmd_param = params["params"].value_string();
+                let dev_tools = ChromeDevTools::new(driver.handle.clone());
+                let ret = rt.block_on(dev_tools.execute_cdp_with_params(&cmd, serde_json::from_str(&cmd_param).map_err(|_| "Parameters for CDP are not a valid JSON string")?))?;
+                output.insert("return".to_string(), ParameterValue::String(serde_json::to_string(&ret).map_err(|_| "Return value couldn't be converted to JSON string")?));
+
+                Ok(())
+            }
+        )
+
         /* ELEMENT SELECTION */
         .with_instruction(
             Instruction::new("browser-select-by-class-name", "Select Element By: Class Name", "Select Element By: Class Name")
