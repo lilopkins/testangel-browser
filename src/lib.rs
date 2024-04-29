@@ -2,11 +2,12 @@ use std::{process::Child, sync::Mutex, time::Duration};
 
 use lazy_static::lazy_static;
 use testangel_engine::*;
-use thirtyfour::prelude::*;
+use thirtyfour::{common::command::Command, prelude::*};
 use thiserror::Error;
 use tokio::runtime::{self, Runtime};
 
 const DEFAULT_URI: &str = "data:text/html;base64,PGh0bWw+PGhlYWQ+PHRpdGxlPkJyb3dzZXIgQXV0b21hdGlvbjwvdGl0bGU+PC9oZWFkPjxib2R5IHN0eWxlPSJvdmVyZmxvdzpoaWRkZW47Ij48aDEgc3R5bGU9ImRpc3BsYXk6ZmxleDtqdXN0aWZ5LWNvbnRlbnQ6Y2VudGVyO2FsaWduLWl0ZW1zOmNlbnRlcjtoZWlnaHQ6MTAwJTsiPlRlc3RBbmdlbCBCcm93c2VyIEF1dG9tYXRpb24gc3RhcnRpbmcuLi48L2gxPjwvYm9keT48L2h0bWw+";
+mod utils;
 
 struct State {
     rt: Option<Runtime>,
@@ -44,10 +45,10 @@ pub enum EngineError {
 
 lazy_static! {
     static ref ENGINE: Mutex<Engine<'static, Mutex<State>>> = Mutex::new(
-        Engine::new("Browser Automation", env!("CARGO_PKG_VERSION"))
+        Engine::new("Browser Automation", "Browser", env!("CARGO_PKG_VERSION"))
         /* INITIALISE AND DE-INITIALISE */
         .with_instruction(
-            Instruction::new("browser-connect", "Connect to Browser", "Connect to the browser robot."),
+            Instruction::new("browser-connect", "ConnectToBrowser", "Connect to Browser", "Connect to the browser robot."),
             |state: &mut Mutex<State>, _params, _output, _evidence| {
                 // Initialising the state initialises the runtime and starts the webdriver.
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
@@ -75,7 +76,7 @@ lazy_static! {
                         std::thread::sleep(Duration::from_millis(500));
                         let mut caps = DesiredCapabilities::chrome();
                         for arg in browser_args {
-                            let _ = caps.add_chrome_arg(&arg);
+                            let _ = caps.add_arg(&arg);
                         }
                         rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), caps))?
                     }
@@ -96,7 +97,7 @@ lazy_static! {
                         std::thread::sleep(Duration::from_millis(500));
                         let mut caps = DesiredCapabilities::firefox();
                         for arg in browser_args {
-                            let _ = caps.add_firefox_arg(&arg);
+                            let _ = caps.add_arg(&arg);
                         }
                         rt.block_on(WebDriver::new(&format!("http://localhost:{port}"), caps))?
                     }
@@ -106,14 +107,15 @@ lazy_static! {
                     unreachable!()
                 };
 
-                rt.block_on(driver.goto(DEFAULT_URI))?;
+                // Has to use this strange format to prevent data URLs being mangled.
+                rt.block_on(driver.cmd(Command::NavigateTo(DEFAULT_URI.to_string())))?;
                 state.driver = Some(driver);
 
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-quit", "Quit Session", "Quit the browser robot session."),
+            Instruction::new("browser-quit", "Quit", "Quit Session", "Quit the browser robot session."),
             |state: &mut Mutex<State>, _params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.take().ok_or(EngineError::NotInitialised)?;
@@ -126,7 +128,7 @@ lazy_static! {
 
         /* WEBDRIVER SESSION */
         .with_instruction(
-            Instruction::new("browser-alert-dismiss", "Alert: Dismiss", "Dismiss an alert box."),
+            Instruction::new("browser-alert-dismiss", "AlertDismiss", "Alert: Dismiss", "Dismiss an alert box."),
             |state: &mut Mutex<State>, _params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
@@ -137,7 +139,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-alert-accept", "Alert: Accept", "Accept an alert box."),
+            Instruction::new("browser-alert-accept", "AlertAccept", "Alert: Accept", "Accept an alert box."),
             |state: &mut Mutex<State>, _params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
@@ -148,7 +150,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-alert-get-text", "Alert: Get Text", "Get the text contained in an alert box.")
+            Instruction::new("browser-alert-get-text", "AlertGetText", "Alert: Get Text", "Get the text contained in an alert box.")
                 .with_output("text", "Alert Text", ParameterKind::String),
             |state: &mut Mutex<State>, _params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
@@ -161,7 +163,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-alert-send-text", "Alert: Send Keys (Type)", "Send keys to an alert box.")
+            Instruction::new("browser-alert-send-text", "AlertType", "Alert: Send Keys (Type)", "Send keys to an alert box.")
                 .with_parameter("keys", "Keys", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
@@ -174,7 +176,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-current-url", "Get Current URL", "Get the current URL.")
+            Instruction::new("browser-current-url", "GetCurrentURL", "Get Current URL", "Get the current URL.")
                 .with_output("url", "URL", ParameterKind::String),
             |state: &mut Mutex<State>, _params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
@@ -187,7 +189,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-execute-javascript", "Execute JavaScript", "Execute arbitrary JavaScript.")
+            Instruction::new("browser-execute-javascript", "ExecuteJavaScript", "Execute JavaScript", "Execute arbitrary JavaScript.")
                 .with_parameter("script", "JavaScript", ParameterKind::String)
                 .with_output("return", "Return Value as JSON String", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -202,7 +204,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-goto", "Go to URL", "Direct the browser to a URL.")
+            Instruction::new("browser-goto", "GoToURL", "Go to URL", "Direct the browser to a URL.")
                 .with_parameter("url", "URL", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
@@ -216,7 +218,7 @@ lazy_static! {
 
         /* CHROME DEVTOOLS PROTOCOL */
         .with_instruction(
-            Instruction::new("browser-cdp-execute", "Chrome DevTools: Execute", "Execute arbitrary JavaScript.")
+            Instruction::new("browser-cdp-execute", "CDPExecute", "Chrome DevTools: Execute", "Execute arbitrary JavaScript.")
                 .with_parameter("cmd", "Command", ParameterKind::String)
                 .with_output("return", "Return Value as JSON String", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -235,7 +237,7 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-cdp-execute-with-params", "Chrome DevTools: Execute with Parameters", "Direct the browser to a URL.")
+            Instruction::new("browser-cdp-execute-with-params", "CDPExecuteWithParams", "Chrome DevTools: Execute with Parameters", "Direct the browser to a URL.")
                 .with_parameter("cmd", "Command", ParameterKind::String)
                 .with_parameter("params", "Parameter as JSON String", ParameterKind::String)
                 .with_output("return", "Return Value as JSON String", ParameterKind::String),
@@ -258,7 +260,7 @@ lazy_static! {
 
         /* ELEMENT SELECTION */
         .with_instruction(
-            Instruction::new("browser-select-by-class-name", "Select Element By: Class Name", "Select Element By: Class Name")
+            Instruction::new("browser-select-by-class-name", "SelectByClassName", "Select Element By: Class Name", "Select Element By: Class Name")
                 .with_parameter("class", "Class Name", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -269,12 +271,12 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::ClassName(&params["class"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-select-by-css", "Select Element By: CSS Selector", "Select Element By: CSS Selector")
+            Instruction::new("browser-select-by-css", "SelectByCSS", "Select Element By: CSS Selector", "Select Element By: CSS Selector")
                 .with_parameter("css", "CSS Selector", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -285,12 +287,12 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::Css(&params["css"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-select-by-id", "Select Element By: ID", "Select Element By: ID")
+            Instruction::new("browser-select-by-id", "SelectByID", "Select Element By: ID", "Select Element By: ID")
                 .with_parameter("id", "ID", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -301,12 +303,12 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::Id(&params["id"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-select-by-link-text", "Select Element By: Link Text", "Select Element By: Link Text")
+            Instruction::new("browser-select-by-link-text", "SelectByLinkText", "Select Element By: Link Text", "Select Element By: Link Text")
                 .with_parameter("link-text", "Link Text", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -317,12 +319,12 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::LinkText(&params["link-text"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-select-by-name", "Select Element By: Name", "Select Element By: HTML 'name' attribute")
+            Instruction::new("browser-select-by-name", "SelectByName", "Select Element By: Name", "Select Element By: HTML 'name' attribute")
                 .with_parameter("name", "Name", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -333,12 +335,12 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::Name(&params["name"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-select-by-tag", "Select Element By: Tag", "Select Element By: Tag")
+            Instruction::new("browser-select-by-tag", "SelectByTag", "Select Element By: Tag", "Select Element By: Tag")
                 .with_parameter("tag", "Tag", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -349,12 +351,12 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::Tag(&params["tag"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-select-by-xpath", "Select Element By: XPath", "Select Element By: XPath")
+            Instruction::new("browser-select-by-xpath", "SelectByXPath", "Select Element By: XPath", "Select Element By: XPath")
                 .with_parameter("xpath", "XPath", ParameterKind::String)
                 .with_output("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
@@ -365,14 +367,14 @@ lazy_static! {
                 let elem = rt.block_on(driver.query(By::XPath(&params["xpath"].value_string()))
                     .wait(state.timeout, state.interval)
                     .first())?;
-                output.insert("element".to_string(), ParameterValue::String(elem.to_json()?.to_string()));
+                output.insert("element".to_string(), ParameterValue::String(utils::serialise_elem(elem)?));
                 Ok(())
             }
         )
 
         /* ELEMENT ACTIONS */
         .with_instruction(
-            Instruction::new("browser-element-attr", "Element: Get Attribute", "Get attribute")
+            Instruction::new("browser-element-attr", "GetElementAttribute", "Element: Get Attribute", "Get attribute")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_parameter("name", "Attribute Name", ParameterKind::String)
                 .with_output("attr", "Attribute Value", ParameterKind::String),
@@ -380,9 +382,7 @@ lazy_static! {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.attr(&params["name"].value_string()))?;
                 output.insert("attr".to_string(), ParameterValue::String(val.unwrap_or(String::new())));
@@ -391,16 +391,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-class-name", "Element: Get Class Name", "Get class name")
+            Instruction::new("browser-element-class-name", "GetElementClassName", "Element: Get Class Name", "Get class name")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("class", "Class Name", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.class_name())?;
                 output.insert("class".to_string(), ParameterValue::String(val.unwrap_or(String::new())));
@@ -409,37 +407,33 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-clear", "Element: Clear", "Clear the contents, for example of a text field.")
+            Instruction::new("browser-element-clear", "ClearElement", "Element: Clear", "Clear the contents, for example of a text field.")
                 .with_parameter("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 rt.block_on(elem.clear())?;
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-click", "Element: Click", "Click element")
+            Instruction::new("browser-element-click", "ClickElement", "Element: Click", "Click element")
                 .with_parameter("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 rt.block_on(elem.click())?;
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-css-value", "Element: Get CSS Value", "Get CSS value")
+            Instruction::new("browser-element-css-value", "GetElementCSSValue", "Element: Get CSS Value", "Get CSS value")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_parameter("name", "CSS property", ParameterKind::String)
                 .with_output("value", "Value", ParameterKind::String),
@@ -447,9 +441,7 @@ lazy_static! {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.css_value(&params["name"].value_string()))?;
                 output.insert("value".to_string(), ParameterValue::String(val));
@@ -458,31 +450,27 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-focus", "Element: Focus", "Focus this element using JavaScript")
+            Instruction::new("browser-element-focus", "FocusElement", "Element: Focus", "Focus this element using JavaScript")
                 .with_parameter("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 rt.block_on(elem.focus())?;
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-id", "Element: Get ID", "Get element ID")
+            Instruction::new("browser-element-id", "GetElementID", "Element: Get ID", "Get element ID")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("id", "Element ID", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.id())?;
                 output.insert("id".to_string(), ParameterValue::String(val.unwrap_or(String::new())));
@@ -491,16 +479,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-inner-html", "Element: Get Inner HTML", "Get the HTML within this element's nodes")
+            Instruction::new("browser-element-inner-html", "GetElementInnerHTML", "Element: Get Inner HTML", "Get the HTML within this element's nodes")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("html", "Inner HTML", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.inner_html())?;
                 output.insert("html".to_string(), ParameterValue::String(val));
@@ -509,16 +495,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-is-clickable", "Element: Is Clickable", "Return is the element is clickable (visible and enabled).")
+            Instruction::new("browser-element-is-clickable", "IsElementClickable", "Element: Is Clickable", "Return is the element is clickable (visible and enabled).")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("clickable", "Clickable", ParameterKind::Boolean),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.is_clickable())?;
                 output.insert("clickable".to_string(), ParameterValue::Boolean(val));
@@ -527,16 +511,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-is-displayed", "Element: Is Displayed", "Return is the element is displayed.")
+            Instruction::new("browser-element-is-displayed", "IsElementDisplayed", "Element: Is Displayed", "Return is the element is displayed.")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("displayed", "Displayed", ParameterKind::Boolean),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.is_displayed())?;
                 output.insert("displayed".to_string(), ParameterValue::Boolean(val));
@@ -545,16 +527,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-is-enabled", "Element: Is Enabled", "Return is the element is enabled.")
+            Instruction::new("browser-element-is-enabled", "IsElementEnabled", "Element: Is Enabled", "Return is the element is enabled.")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("enabled", "Enabled", ParameterKind::Boolean),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.is_enabled())?;
                 output.insert("enabled".to_string(), ParameterValue::Boolean(val));
@@ -563,16 +543,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-is-selected", "Element: Is Selected", "Return is the element is selected.")
+            Instruction::new("browser-element-is-selected", "IsElementSelected", "Element: Is Selected", "Return is the element is selected.")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("selected", "Selected", ParameterKind::Boolean),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.is_selected())?;
                 output.insert("selected".to_string(), ParameterValue::Boolean(val));
@@ -581,16 +559,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-outer-html", "Element: Get Outer HTML", "Get the HTML within this element's nodes")
+            Instruction::new("browser-element-outer-html", "GetElementOuterHTML", "Element: Get Outer HTML", "Get the HTML within this element's nodes")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("html", "Outer HTML", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.outer_html())?;
                 output.insert("html".to_string(), ParameterValue::String(val));
@@ -599,16 +575,15 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-screenshot", "Element: Screenshot as Evidence", "Screenshot an element as evidence")
+            Instruction::new("browser-element-screenshot", "ScreenshotElementAsEvidence", "Element: Screenshot as Evidence", "Screenshot an element as evidence")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_parameter("label", "Label", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
                 let png_data = rt.block_on(elem.screenshot_as_png())?;
                 use base64::{Engine as _, engine::general_purpose};
                 let png_base64 = general_purpose::STANDARD.encode(png_data);
@@ -618,47 +593,41 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-scroll-into-view", "Element: Scroll into View", "Scroll this element into view using JavaScript")
+            Instruction::new("browser-element-scroll-into-view", "ScrollElementIntoView", "Element: Scroll into View", "Scroll this element into view using JavaScript")
                 .with_parameter("element", "Element", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 rt.block_on(elem.scroll_into_view())?;
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-send-keys", "Element: Send Keys (Type)", "Send keys (type) to this element. For special keys, see: hpkns.uk/takeys")
+            Instruction::new("browser-element-send-keys", "ElementType", "Element: Send Keys (Type)", "Send keys (type) to this element. For special keys, see: hpkns.uk/takeys")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_parameter("keys", "Keys", ParameterKind::String),
             |state: &mut Mutex<State>, params, _output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 rt.block_on(elem.send_keys(params["keys"].value_string()))?;
                 Ok(())
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-text", "Element: Get Text", "Get the text within this element's nodes")
+            Instruction::new("browser-element-text", "GetElementText", "Element: Get Text", "Get the text within this element's nodes")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("text", "Text", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.text())?;
                 output.insert("text".to_string(), ParameterValue::String(val));
@@ -667,16 +636,14 @@ lazy_static! {
             }
         )
         .with_instruction(
-            Instruction::new("browser-element-value", "Element: Get Value", "Get the value of this element")
+            Instruction::new("browser-element-value", "GetElementValue", "Element: Get Value", "Get the value of this element")
                 .with_parameter("element", "Element", ParameterKind::String)
                 .with_output("value", "Value", ParameterKind::String),
             |state: &mut Mutex<State>, params, output, _evidence| {
                 let state = state.get_mut().map_err(|_| "Serious error: state mutex was poisoned")?;
                 let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
                 let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-
-                let json_elem = serde_json::from_str(&params["element"].value_string()).map_err(|e| format!("Invalid element parameter: {e}"))?;
-                let elem = WebElement::from_json(json_elem, driver.handle.clone()).map_err(|e| format!("Invalid element: {e}"))?;
+                let elem = utils::deserialise_elem(driver.handle.clone(), &params["element"].value_string())?;
 
                 let val = rt.block_on(elem.value())?;
                 output.insert("value".to_string(), ParameterValue::String(val.unwrap_or(String::new())));
