@@ -1,6 +1,8 @@
+#![warn(clippy::pedantic)]
+
 use std::{process::Child, time::Duration};
 
-use testangel_engine::*;
+use testangel_engine::{Evidence, EvidenceContent, engine};
 use thirtyfour::prelude::*;
 use thiserror::Error;
 use tokio::runtime::{self, Runtime};
@@ -38,9 +40,9 @@ engine! {
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn connect() {
-            state.rt = Some(runtime::Builder::new_current_thread().enable_all().build()?);
-
             use std::{env, process};
+
+            state.rt = Some(runtime::Builder::new_current_thread().enable_all().build()?);
             let use_chrome = env::var("TA_BROWSER_USE_CHROME").ok();
             let use_firefox = env::var("TA_BROWSER_USE_FIREFOX").ok();
             let webdriver_port = env::var("TA_BROWSER_WEBDRIVER_PORT").ok();
@@ -269,7 +271,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::ClassName(class))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /// Select Element By: CSS Selector
@@ -287,7 +289,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::Css(css))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /// Select Element By: ID
@@ -305,7 +307,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::Id(id))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /// Select Element By: Link Text
@@ -323,7 +325,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::LinkText(link_text))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /// Select Element By: HTML 'name' attribute
@@ -341,7 +343,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::Name(name))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /// Select Element By: Tag
@@ -359,7 +361,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::Tag(tag))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /// Select Element By: XPath
@@ -377,7 +379,7 @@ engine! {
             let elem = rt.block_on(driver.query(By::XPath(xpath))
                 .wait(state.timeout, state.interval)
                 .first())?;
-            utils::serialise_elem(elem)?
+            utils::serialise_elem(&elem)?
         }
 
         /* ELEMENT ACTIONS */
@@ -394,7 +396,7 @@ engine! {
         ) -> #[output(id = "attr", name = "Attribute Value")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             let val = rt.block_on(elem.attr(&name))?;
             val.unwrap_or(String::new())
         }
@@ -411,7 +413,7 @@ engine! {
         ) -> #[output(id = "class", name = "Class Name")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             let val = rt.block_on(elem.class_name())?;
             val.unwrap_or(String::new())
         }
@@ -428,7 +430,7 @@ engine! {
         ) {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.clear())?;
         }
 
@@ -444,7 +446,7 @@ engine! {
         ) {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.click())?;
         }
 
@@ -461,7 +463,7 @@ engine! {
         ) -> #[output(id = "value", name = "value")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.css_value(&name))?
         }
 
@@ -477,7 +479,7 @@ engine! {
         ) {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.focus())?;
         }
 
@@ -493,7 +495,7 @@ engine! {
         ) -> #[output(id = "id", name = "Element ID")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             let val = rt.block_on(elem.id())?;
             val.unwrap_or(String::new())
         }
@@ -510,7 +512,7 @@ engine! {
         ) -> #[output(id = "html", name = "Inner HTML")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.inner_html())?
         }
 
@@ -526,7 +528,7 @@ engine! {
         ) -> #[output(id = "clickable", name = "Clickable")] bool {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.is_clickable())?
         }
 
@@ -542,7 +544,7 @@ engine! {
         ) -> #[output(id = "displayed", name = "Displayed")] bool {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.is_displayed())?
         }
 
@@ -558,7 +560,7 @@ engine! {
         ) -> #[output(id = "enabled", name = "Enabled")] bool {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.is_enabled())?
         }
 
@@ -574,7 +576,7 @@ engine! {
         ) -> #[output(id = "selected", name = "Selected")] bool {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.is_selected())?
         }
 
@@ -590,7 +592,7 @@ engine! {
         ) -> #[output(id = "html", name = "Outer HTML")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.outer_html())?
         }
 
@@ -605,12 +607,13 @@ engine! {
             element: String,
             label: String,
         ) {
+            use base64::{Engine as _, engine::general_purpose};
+
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
 
             let png_data = rt.block_on(elem.screenshot_as_png())?;
-            use base64::{Engine as _, engine::general_purpose};
             let png_base64 = general_purpose::STANDARD.encode(png_data);
             evidence.push(Evidence { label, content: EvidenceContent::ImageAsPngBase64(png_base64) });
         }
@@ -627,7 +630,7 @@ engine! {
         ) {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.scroll_into_view())?;
         }
 
@@ -644,7 +647,7 @@ engine! {
         ) {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.send_keys(keys))?;
         }
 
@@ -660,7 +663,7 @@ engine! {
         ) -> #[output(id = "text", name = "Text")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             rt.block_on(elem.text())?
         }
 
@@ -676,7 +679,7 @@ engine! {
         ) -> #[output(id = "value", name = "Value")] String {
             let rt = state.rt.as_ref().ok_or(EngineError::NotInitialised)?;
             let driver = state.driver.as_ref().ok_or(EngineError::NotInitialised)?;
-            let elem = utils::deserialise_elem(driver.handle.clone(), &element)?;
+            let elem = utils::deserialise_elem(&driver.handle, &element)?;
             let val = rt.block_on(elem.value())?;
             val.unwrap_or(String::new())
         }

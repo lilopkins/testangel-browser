@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use thirtyfour::{error::WebDriverResult, session::handle::SessionHandle, WebElement};
 
-pub fn serialise_elem(elem: WebElement) -> WebDriverResult<String> {
+pub fn serialise_elem(elem: &WebElement) -> WebDriverResult<String> {
     Ok(elem.to_json()?.to_string())
 }
 
 pub fn deserialise_elem<S: AsRef<str>>(
-    handle: Arc<SessionHandle>,
+    handle: &Arc<SessionHandle>,
     s: S,
 ) -> Result<WebElement, String> {
     let s = s.as_ref();
