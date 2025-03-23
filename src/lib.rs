@@ -35,8 +35,8 @@ engine! {
         /// Connect to the browser robot.
         #[instruction(
             id = "browser-connect",
-            name = "ConnectToBrowser",
-            lua_name = "Connect to Browser",
+            lua_name = "ConnectToBrowser",
+            name = "Connect to Browser",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn connect() {
@@ -103,8 +103,8 @@ engine! {
         /// Quit the browser robot session.
         #[instruction(
             id = "browser-quit",
-            name = "Quit",
-            lua_name = "Quit Session",
+            lua_name = "Quit",
+            name = "Quit Session",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn quit() {
@@ -118,8 +118,8 @@ engine! {
         /// Dismiss an alert box.
         #[instruction(
             id = "browser-alert-dismiss",
-            name = "AlertDismiss",
-            lua_name = "Alert: Dismiss",
+            lua_name = "AlertDismiss",
+            name = "Alert: Dismiss",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn alert_dismiss() {
@@ -131,8 +131,8 @@ engine! {
         /// Accept an alert box.
         #[instruction(
             id = "browser-alert-accept",
-            name = "AlertAccept",
-            lua_name = "Alert: Accept",
+            lua_name = "AlertAccept",
+            name = "Alert: Accept",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn alert_accept() {
@@ -145,8 +145,8 @@ engine! {
         /// Get the text contained in an alert box.
         #[instruction(
             id = "browser-alert-get-text",
-            name = "AlertGetText",
-            lua_name = "Alert: Get Text",
+            lua_name = "AlertGetText",
+            name = "Alert: Get Text",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn alert_get_text() -> #[output(id = "text", name = "Alert Text")] String {
@@ -158,8 +158,8 @@ engine! {
         /// Send keys to an alert box.
         #[instruction(
             id = "browser-alert-send-text",
-            name = "AlertType",
-            lua_name = "Alert: Send Keys (Type)",
+            lua_name = "AlertType",
+            name = "Alert: Send Keys (Type)",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn alert_send_text(
@@ -173,8 +173,8 @@ engine! {
         /// Get the current URL.
         #[instruction(
             id = "browser-current-url",
-            name = "GetCurrentURL",
-            lua_name = "Get Current URL",
+            lua_name = "GetCurrentURL",
+            name = "Get Current URL",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn current_url() -> #[output(id = "url", name = "URL")] String {
@@ -187,8 +187,8 @@ engine! {
         /// Execute arbitrary JavaScript.
         #[instruction(
             id = "browser-execute-javascript",
-            name = "ExecuteJavaScript",
-            lua_name = "Execute JavaScript",
+            lua_name = "ExecuteJavaScript",
+            name = "Execute JavaScript",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn execute_javascript(
@@ -203,8 +203,8 @@ engine! {
         /// Direct the browser to a URL.
         #[instruction(
             id = "browser-goto",
-            name = "GoToURL",
-            lua_name = "Go to URL",
+            lua_name = "GoToURL",
+            name = "Go to URL",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn goto(
@@ -220,8 +220,8 @@ engine! {
         /// Execute arbitrary JavaScript.
         #[instruction(
             id = "browser-cdp-execute",
-            name = "CDPExecute",
-            lua_name = "Chrome DevTools: Execute",
+            lua_name = "CDPExecute",
+            name = "Chrome DevTools: Execute",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn cdp_execute(
@@ -238,8 +238,8 @@ engine! {
         /// Direct the browser to a URL.
         #[instruction(
             id = "browser-cdp-execute-with-params",
-            name = "CDPExecuteWithParams",
-            lua_name = "Chrome DevTools: Execute with Parameters",
+            lua_name = "CDPExecuteWithParams",
+            name = "Chrome DevTools: Execute with Parameters",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn cdp_execute_with_params(
@@ -259,8 +259,8 @@ engine! {
         /// Select Element By: Class Name
         #[instruction(
             id = "browser-select-by-class-name",
-            name = "SelectByClassName",
-            lua_name = "Select Element By: Class Name",
+            lua_name = "SelectByClassName",
+            name = "Select Element By: Class Name",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_class_name(
@@ -277,8 +277,8 @@ engine! {
         /// Select Element By: CSS Selector
         #[instruction(
             id = "browser-select-by-css",
-            name = "SelectByCSS",
-            lua_name = "Select Element By: CSS Selector",
+            lua_name = "SelectByCSS",
+            name = "Select Element By: CSS Selector",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_css(
@@ -295,8 +295,8 @@ engine! {
         /// Select Element By: ID
         #[instruction(
             id = "browser-select-by-id",
-            name = "SelectByID",
-            lua_name = "Select Element By: ID",
+            lua_name = "SelectByID",
+            name = "Select Element By: ID",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_id(
@@ -313,8 +313,8 @@ engine! {
         /// Select Element By: Link Text
         #[instruction(
             id = "browser-select-by-link-text",
-            name = "SelectByLinkText",
-            lua_name = "Select Element By: Link Text",
+            lua_name = "SelectByLinkText",
+            name = "Select Element By: Link Text",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_link_text(
@@ -331,8 +331,8 @@ engine! {
         /// Select Element By: HTML 'name' attribute
         #[instruction(
             id = "browser-select-by-name",
-            name = "SelectByName",
-            lua_name = "Select Element By: Name",
+            lua_name = "SelectByName",
+            name = "Select Element By: Name",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_name(
@@ -349,8 +349,8 @@ engine! {
         /// Select Element By: Tag
         #[instruction(
             id = "browser-select-by-tag",
-            name = "SelectByTag",
-            lua_name = "Select Element By: Tag",
+            lua_name = "SelectByTag",
+            name = "Select Element By: Tag",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_tag(
@@ -367,8 +367,8 @@ engine! {
         /// Select Element By: XPath
         #[instruction(
             id = "browser-select-by-xpath",
-            name = "SelectByXPath",
-            lua_name = "Select Element By: XPath",
+            lua_name = "SelectByXPath",
+            name = "Select Element By: XPath",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn select_by_xpath(
@@ -386,8 +386,8 @@ engine! {
         /// Get attribute
         #[instruction(
             id = "browser-element-attr",
-            name = "GetElementAttribute",
-            lua_name = "Element: Get Attribute",
+            lua_name = "GetElementAttribute",
+            name = "Element: Get Attribute",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_attr(
@@ -404,8 +404,8 @@ engine! {
         /// Get class name
         #[instruction(
             id = "browser-element-class-name",
-            name = "GetElementClassName",
-            lua_name = "Element: Get Class Name",
+            lua_name = "GetElementClassName",
+            name = "Element: Get Class Name",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_class_name(
@@ -421,8 +421,8 @@ engine! {
         /// Clear the contents, for example of a text field.
         #[instruction(
             id = "browser-element-clear",
-            name = "ClearElement",
-            lua_name = "Element: Clear",
+            lua_name = "ClearElement",
+            name = "Element: Clear",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_clear(
@@ -437,8 +437,8 @@ engine! {
         /// Click element
         #[instruction(
             id = "browser-element-click",
-            name = "ClickElement",
-            lua_name = "Element: Click",
+            lua_name = "ClickElement",
+            name = "Element: Click",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_click(
@@ -453,8 +453,8 @@ engine! {
         /// Get CSS value
         #[instruction(
             id = "browser-element-css-value",
-            name = "GetElementCSSValue",
-            lua_name = "Element: Get CSS Value",
+            lua_name = "GetElementCSSValue",
+            name = "Element: Get CSS Value",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_css_value(
@@ -470,8 +470,8 @@ engine! {
         /// Focus this element using JavaScript
         #[instruction(
             id = "browser-element-focus",
-            name = "FocusElement",
-            lua_name = "Element: Focus",
+            lua_name = "FocusElement",
+            name = "Element: Focus",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_focus(
@@ -486,8 +486,8 @@ engine! {
         /// Get element ID
         #[instruction(
             id = "browser-element-id",
-            name = "GetElementID",
-            lua_name = "Element: Get ID",
+            lua_name = "GetElementID",
+            name = "Element: Get ID",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_id(
@@ -503,8 +503,8 @@ engine! {
         /// Get the HTML within this element's nodes
         #[instruction(
             id = "browser-element-inner-html",
-            name = "GetElementInnerHTML",
-            lua_name = "Element: Get Inner HTML",
+            lua_name = "GetElementInnerHTML",
+            name = "Element: Get Inner HTML",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_inner_html(
@@ -519,8 +519,8 @@ engine! {
         /// Return is the element is clickable (visible and enabled).
         #[instruction(
             id = "browser-element-is-clickable",
-            name = "IsElementClickable",
-            lua_name = "Element: Is Clickable",
+            lua_name = "IsElementClickable",
+            name = "Element: Is Clickable",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_is_clickable(
@@ -535,8 +535,8 @@ engine! {
         /// Return is the element is displayed.
         #[instruction(
             id = "browser-element-is-displayed",
-            name = "IsElementDisplayed",
-            lua_name = "Element: Is Displayed",
+            lua_name = "IsElementDisplayed",
+            name = "Element: Is Displayed",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_is_displayed(
@@ -551,8 +551,8 @@ engine! {
         /// Return is the element is enabled.
         #[instruction(
             id = "browser-element-is-enabled",
-            name = "IsElementEnabled",
-            lua_name = "Element: Is Enabled",
+            lua_name = "IsElementEnabled",
+            name = "Element: Is Enabled",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_is_enabled(
@@ -567,8 +567,8 @@ engine! {
         /// Return is the element is selected.
         #[instruction(
             id = "browser-element-is-selected",
-            name = "IsElementSelected",
-            lua_name = "Element: Is Selected",
+            lua_name = "IsElementSelected",
+            name = "Element: Is Selected",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_is_selected(
@@ -583,8 +583,8 @@ engine! {
         /// Get the HTML within this element's nodes
         #[instruction(
             id = "browser-element-outer-html",
-            name = "GetElementOuterHTML",
-            lua_name = "Element: Get Outer HTML",
+            lua_name = "GetElementOuterHTML",
+            name = "Element: Get Outer HTML",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_outer_html(
@@ -599,8 +599,8 @@ engine! {
         /// Screenshot an element as evidence
         #[instruction(
             id = "browser-element-screenshot",
-            name = "ScreenshotElementAsEvidence",
-            lua_name = "Element: Screenshot as Evidence",
+            lua_name = "ScreenshotElementAsEvidence",
+            name = "Element: Screenshot as Evidence",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_screenshot(
@@ -621,8 +621,8 @@ engine! {
         /// Scroll this element into view using JavaScript
         #[instruction(
             id = "browser-element-scroll-into-view",
-            name = "ScrollElementIntoView",
-            lua_name = "Element: Scroll into View",
+            lua_name = "ScrollElementIntoView",
+            name = "Element: Scroll into View",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_scroll_into_view(
@@ -637,8 +637,8 @@ engine! {
         /// Send keys (type) to this element. For special keys, see: hpkns.uk/takeys
         #[instruction(
             id = "browser-element-send-keys",
-            name = "ElementType",
-            lua_name = "Element: Send Keys (Type)",
+            lua_name = "ElementType",
+            name = "Element: Send Keys (Type)",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_send_keys(
@@ -654,8 +654,8 @@ engine! {
         /// Get the text within this element's nodes
         #[instruction(
             id = "browser-element-text",
-            name = "GetElementText",
-            lua_name = "Element: Get Text",
+            lua_name = "GetElementText",
+            name = "Element: Get Text",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_text(
@@ -670,8 +670,8 @@ engine! {
         /// Get the value of this element
         #[instruction(
             id = "browser-element-value",
-            name = "GetElementValue",
-            lua_name = "Element: Get Value",
+            lua_name = "GetElementValue",
+            name = "Element: Get Value",
             flags = InstructionFlags::AUTOMATIC,
         )]
         fn element_value(
