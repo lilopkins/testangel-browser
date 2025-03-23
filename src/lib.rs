@@ -2,7 +2,7 @@
 
 use std::{process::Child, time::Duration};
 
-use testangel_engine::{Evidence, EvidenceContent, engine};
+use testangel_engine::{engine, Evidence, EvidenceContent};
 use thirtyfour::prelude::*;
 use thiserror::Error;
 use tokio::runtime::{self, Runtime};
