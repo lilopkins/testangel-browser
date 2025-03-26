@@ -1,6 +1,6 @@
 [package]
 name = "testangel-browser"
-version = "0.4.0"
+version = "0.6.0"
 edition = "2021"
 authors = [ "Lily Hopkins <lily@hpkns.uk>" ]
 description = "TestAngel engine for browser automation."
@@ -11,10 +11,10 @@ description = "TestAngel engine for browser automation."
 crate-type = [ "cdylib" ]
 
 [dependencies]
-lazy_static = "1.4.0"
-testangel-engine = { git = "https://github.com/lilopkins/testangel.git" }
-thirtyfour = "0.31.0"
+testangel-engine = { version = "1.0.0", git = "https://github.com/lilopkins/testangel.git", branch = "next" }
+thirtyfour = "0.35.0"
 tokio = "1.32.0"
-thiserror = "1.0"
+thiserror = "2.0"
 base64 = "0.22.0"
 serde_json = "1.0.107"
+dynamic-plugin = { version = "0.6.0", features = ["client"] }
